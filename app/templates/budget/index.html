@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Management - Personal Finance Advisor Bot{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pb-3 mb-3 border-bottom gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Budget Management &amp; Limits</h3>
+        <p class="text-muted small mb-0">Set category limits, monitor real-time utilization, and prevent overspending</p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <form method="GET" action="{{ url_for('budget.index') }}" class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Month:</label>
+            <input type="month" name="month" class="form-control form-control-sm" value="{{ month }}" onchange="this.form.submit()">
+        </form>
+
+        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#autoBudgetModal">
+            <i class="bi bi-magic"></i> Auto-Generate (50/30/20)
+        </button>
+
+        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#setBudgetModal">
+            <i class="bi bi-plus-circle"></i> Set Category Budget
+        </button>
+    </div>
+</div>
+
+<!-- Overall Utilization Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Budget Limit</span>
+            <h4 class="fw-bold text-dark mt-1 mb-0">{{ utilization.total_budgeted | currency }}</h4>
+            <span class="text-muted small">Capped for {{ month }}</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Spent</span>
+            <h4 class="fw-bold text-danger mt-1 mb-0">{{ utilization.total_spent | currency }}</h4>
+            <span class="text-muted small">{{ utilization.overall_percentage }}% of total budget</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Remaining Budget</span>
+            <h4 class="fw-bold {% if utilization.total_remaining >= 0 %}text-success{% else %}text-danger{% endif %} mt-1 mb-0">
+                {{ utilization.total_remaining | currency }}
+            </h4>
+            <span class="text-muted small">Available to spend</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Utilization Status</span>
+            <div class="mt-1">
+                {% if utilization.overall_percentage > 100 %}
+                    <span class="badge bg-danger fs-6">Overspending (>100%)</span>
+                {% elif utilization.overall_percentage >= 90 %}
+                    <span class="badge bg-warning text-dark fs-6">Near Limit (90-100%)</span>
+                {% elif utilization.overall_percentage >= 70 %}
+                    <span class="badge bg-info text-dark fs-6">Warning (70-90%)</span>
+                {% else %}
+                    <span class="badge bg-success fs-6">Normal (&lt;70%)</span>
+                {% endif %}
+            </div>
+            <span class="text-muted small">Overall monthly discipline</span>
+        </div>
+    </div>
+</div>
+
+<!-- Threshold Legend Indicator -->
+<div class="card border-0 shadow-sm bg-white mb-4">
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
+            <span class="fw-semibold text-muted"><i class="bi bi-info-circle me-1"></i> Threshold Status Guide:</span>
+            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> &lt; 70% Normal</span>
+            <span class="badge bg-info text-dark"><i class="bi bi-exclamation-circle me-1"></i> 70% – 90% Warning</span>
+            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i> 90% – 100% Near Limit</span>
+            <span class="badge bg-danger"><i class="bi bi-fire me-1"></i> &gt; 100% Overspending</span>
+        </div>
+    </div>
+</div>
+
+<!-- Category Budget Utilization List -->
+<div class="card border-0 shadow-sm bg-white mb-4">
+    <div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-sliders me-2 text-primary"></i>Category-wise Budgets &amp; Utilization</h6>
+        <span class="text-muted small">{{ utilization.category_budgets|length }} categories configured</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th class="ps-3">Category</th>
+                        <th>Allocated Limit</th>
+                        <th>Amount Spent</th>
+                        <th>Remaining</th>
+                        <th style="min-width: 180px;">Utilization Progress</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in utilization.category_budgets %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ item.category }}</td>
+                        <td>{{ item.amount_limit | currency }}</td>
+                        <td class="fw-bold {% if item.percentage > 100 %}text-danger{% endif %}">{{ item.spent | currency }}</td>
+                        <td class="{% if item.remaining < 0 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                            {{ item.remaining | currency }}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 9px;">
+                                    <div class="progress-bar {{ item.bar_color }} {% if item.percentage > 100 %}progress-bar-overspend{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ [item.percentage, 100.0]|min }}%;" 
+                                         aria-valuenow="{{ item.percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100"></div>
+                                </div>
+                                <span class="small fw-semibold" style="width: 45px;">{{ item.percentage }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ item.badge_class }}">{{ item.status }}</span>
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="d-inline-flex gap-1">
+                                <button class="btn btn-outline-secondary btn-sm py-0 px-2" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editBudgetModal{{ item.id }}" title="Edit Limit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form action="{{ url_for('budget.delete', budget_id=item.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove budget limit for {{ item.category }}?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade text-start" id="editBudgetModal{{ item.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content border-0 shadow">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title fs-6 fw-bold">Edit Limit for {{ item.category }}</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form action="{{ url_for('budget.set_budget') }}" method="POST">
+                                            <div class="modal-body">
+                                                <input type="hidden" name="month" value="{{ month }}">
+                                                <input type="hidden" name="category" value="{{ item.category }}">
+                                                <div class="mb-3">
+                                                    <label class="form-label small fw-semibold">New Budget Limit ({{ user_currency_symbol }})</label>
+                                                    <input type="number" step="0.01" class="form-control" name="amount_limit" value="{{ item.amount_limit }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary btn-sm px-3">Save Limit</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-pie-chart fs-1 d-block mb-2 text-secondary"></i>
+                            <p class="mb-2">No category budgets configured for {{ month }}.</p>
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#autoBudgetModal">
+                                    <i class="bi bi-magic me-1"></i> Auto-Generate Budget (50/30/20)
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#setBudgetModal">
+                                    <i class="bi bi-plus-circle me-1"></i> Add Custom Limit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Set Category Budget Limit -->
+<div class="modal fade" id="setBudgetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-sliders me-1"></i> Set Category Budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('budget.set_budget') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="month" value="{{ month }}">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Category</label>
+                        <select class="form-select" name="category" required>
+                            {% for cat in all_categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Monthly Limit ({{ user_currency_symbol }})</label>
+                        <input type="number" step="0.01" class="form-control" name="amount_limit" placeholder="e.g. 5000" required autofocus>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3">Set Limit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Automatic Budget Generator (50/30/20) -->
+<div class="modal fade" id="autoBudgetModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-magic text-warning me-1"></i> AI Automatic Budget Generator (50/30/20)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    The system analyzes your monthly baseline income (<strong>{{ auto_budget.effective_income | currency }}</strong>), savings goals, and spending history to construct a customized 50/30/20 financial budget.
+                </div>
+
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-md-4">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="text-muted extra-small text-uppercase">Needs Allocation (50%)</span>
+                            <div class="fw-bold text-primary">{{ auto_budget.needs_budget | currency }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="text-muted extra-small text-uppercase">Wants Allocation (30%)</span>
+                            <div class="fw-bold text-warning">{{ auto_budget.wants_budget | currency }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-2 border rounded bg-light">
+                            <span class="text-muted extra-small text-uppercase">Savings Target (20%)</span>
+                            <div class="fw-bold text-success">{{ auto_budget.savings_target | currency }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold small mb-2">Suggested Category Limits Preview:</h6>
+                <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light extra-small">
+                            <tr>
+                                <th>Category</th>
+                                <th>Type</th>
+                                <th class="text-end">Recommended Limit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            {% for sc in auto_budget.categories %}
+                            <tr>
+                                <td class="fw-semibold">{{ sc.category }}</td>
+                                <td>
+                                    <span class="badge {% if 'Needs' in sc.type %}bg-primary-subtle text-primary{% else %}bg-warning-subtle text-dark{% endif %}">
+                                        {{ sc.type }}
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold">{{ sc.suggested_limit | currency }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('budget.apply_auto_budget') }}" method="POST">
+                    <input type="hidden" name="month" value="{{ month }}">
+                    <button type="submit" class="btn btn-success btn-sm px-3">
+                        <i class="bi bi-check2-circle me-1"></i> Apply Suggested Budget to {{ month }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

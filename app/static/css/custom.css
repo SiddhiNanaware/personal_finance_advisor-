@@ -1,0 +1,159 @@
+/* Custom Styling for Personal Finance Advisor Bot */
+
+:root {
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #06b6d4;
+    --dark-surface: #1e293b;
+    --card-border-radius: 12px;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+/* Card Enhancements */
+.card {
+    border-radius: var(--card-border-radius);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* Stat Cards */
+.stat-card {
+    border-radius: var(--card-border-radius);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+/* Progress Bars */
+.progress {
+    border-radius: 8px;
+    background-color: #e2e8f0;
+    overflow: hidden;
+}
+
+.progress-bar-overspend {
+    background-color: #ef4444 !important;
+    animation: pulseGlow 1.5s infinite;
+}
+
+@keyframes pulseGlow {
+    0% { opacity: 1; }
+    50% { opacity: 0.75; }
+    100% { opacity: 1; }
+}
+
+/* Health Score Circle / Badge */
+.health-score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Chat Assistant Widget Styles */
+.chat-container {
+    height: 460px;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border-radius: var(--card-border-radius);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chat-bubble {
+    max-width: 80%;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.chat-bubble-user {
+    align-self: flex-end;
+    background-color: #3b82f6;
+    color: #ffffff;
+    border-bottom-right-radius: 2px;
+}
+
+.chat-bubble-assistant {
+    align-self: flex-start;
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-bottom-left-radius: 2px;
+    border: 1px solid #e2e8f0;
+}
+
+.quick-prompt-btn {
+    font-size: 0.8rem;
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+}
+
+/* Recommendation cards */
+.rec-card {
+    border-left: 4px solid;
+}
+.rec-card.border-danger { border-left-color: var(--danger-color) !important; }
+.rec-card.border-warning { border-left-color: var(--warning-color) !important; }
+.rec-card.border-success { border-left-color: var(--success-color) !important; }
+.rec-card.border-info { border-left-color: var(--info-color) !important; }
+.rec-card.border-primary { border-left-color: var(--primary-color) !important; }
+
+/* Print Mode for Reports */
+@media print {
+    nav, footer, .btn, .no-print {
+        display: none !important;
+    }
+    body {
+        background-color: #ffffff !important;
+        font-size: 11pt;
+    }
+    .card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+}

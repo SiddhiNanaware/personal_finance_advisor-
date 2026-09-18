@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile &amp; Preferences - Personal Finance Advisor Bot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm bg-white p-4">
+            <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                <div class="stat-icon-box bg-primary-subtle text-primary" style="width: 60px; height: 60px; font-size: 1.8rem;">
+                    <i class="bi bi-person-gear"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-1">User Profile &amp; Preferences</h4>
+                    <p class="text-muted small mb-0">Configure your baseline financial information, target goals, and system currency</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('profile.index') }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="full_name" class="form-label small fw-semibold">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name }}" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email" class="form-label small fw-semibold">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="monthly_income" class="form-label small fw-semibold">Estimated Monthly Base Income</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">{{ user_currency_symbol }}</span>
+                            <input type="number" step="0.01" class="form-control" id="monthly_income" name="monthly_income" value="{{ current_user.monthly_income }}">
+                        </div>
+                        <div class="form-text small">Used by the automatic budget generator when no specific income entries are logged.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="monthly_savings_target" class="form-label small fw-semibold">Monthly Savings Target</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">{{ user_currency_symbol }}</span>
+                            <input type="number" step="0.01" class="form-control" id="monthly_savings_target" name="monthly_savings_target" value="{{ current_user.monthly_savings_target }}">
+                        </div>
+                        <div class="form-text small">Target amount you aim to save each month.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="preferred_currency" class="form-label small fw-semibold">Preferred Currency</label>
+                        <select class="form-select" id="preferred_currency" name="preferred_currency">
+                            {% for code, label in currencies %}
+                                <option value="{{ code }}" {% if current_user.preferred_currency == code %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Default is INR (₹). Can be changed to USD, EUR, GBP, etc. anytime.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="financial_goal" class="form-label small fw-semibold">Primary Financial Goal</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-trophy"></i></span>
+                            <input type="text" class="form-control" id="financial_goal" name="financial_goal" value="{{ current_user.financial_goal or '' }}" placeholder="e.g. Build 6-Month Emergency Fund">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted extra-small">Member since: {{ current_user.created_at.strftime('%B %Y') }}</span>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-save me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

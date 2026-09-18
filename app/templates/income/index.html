@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Income Management - Personal Finance Advisor Bot{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pb-3 mb-3 border-bottom gap-2">
+    <div>
+        <h3 class="fw-bold mb-1">Income Management</h3>
+        <p class="text-muted small mb-0">Record, track, and categorize your income streams</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <form method="GET" action="{{ url_for('income.index') }}" class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Month:</label>
+            <input type="month" name="month" class="form-control form-control-sm" value="{{ selected_month }}" onchange="this.form.submit()">
+        </form>
+
+        <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+            <i class="bi bi-plus-circle"></i> Add Income
+        </button>
+    </div>
+</div>
+
+<!-- Income Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Monthly Income ({{ selected_month }})</span>
+            <h4 class="fw-bold text-success mt-1 mb-0">{{ summary.monthly_income | currency }}</h4>
+            <span class="text-muted small">Current selected billing cycle</span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Yearly Income ({{ summary.year }})</span>
+            <h4 class="fw-bold text-primary mt-1 mb-0">{{ summary.yearly_income | currency }}</h4>
+            <span class="text-muted small">Cumulative earnings across this calendar year</span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Active Income Streams</span>
+            <h4 class="fw-bold text-dark mt-1 mb-0">{{ sources|length }}</h4>
+            <span class="text-muted small">Diversified earning channels</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Income Records Table -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm bg-white">
+            <div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-2 text-success"></i>Income History</h6>
+                <span class="badge bg-secondary-subtle text-secondary">{{ incomes|length }} records</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th class="ps-3">Date</th>
+                                <th>Source</th>
+                                <th>Description</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end pe-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inc in incomes %}
+                            <tr>
+                                <td class="ps-3 small text-muted">{{ inc.date.strftime('%d %b %Y') }}</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        {{ inc.source }}
+                                    </span>
+                                </td>
+                                <td class="small">{{ inc.description or '-' }}</td>
+                                <td class="text-end fw-bold text-success">{{ inc.amount | currency }}</td>
+                                <td class="text-end pe-3">
+                                    <div class="d-inline-flex gap-1">
+                                        <button class="btn btn-outline-secondary btn-sm py-0 px-2" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editIncomeModal{{ inc.id }}" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form action="{{ url_for('income.delete', income_id=inc.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this income entry?');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Edit Income Modal -->
+                                    <div class="modal fade text-start" id="editIncomeModal{{ inc.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content border-0 shadow">
+                                                <div class="modal-header bg-primary text-white">
+                                                    <h5 class="modal-title fs-6 fw-bold">Edit Income Record</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form action="{{ url_for('income.edit', income_id=inc.id) }}" method="POST">
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Amount</label>
+                                                            <input type="number" step="0.01" class="form-control" name="amount" value="{{ inc.amount }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Source</label>
+                                                            <select class="form-select" name="source" required>
+                                                                {% for src in income_sources %}
+                                                                    <option value="{{ src }}" {% if src == inc.source %}selected{% endif %}>{{ src }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Date</label>
+                                                            <input type="date" class="form-control" name="date" value="{{ inc.date.strftime('%Y-%m-%d') }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Description</label>
+                                                            <input type="text" class="form-control" name="description" value="{{ inc.description or '' }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-primary btn-sm px-3">Update Income</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted small">
+                                    <i class="bi bi-wallet2 fs-2 d-block mb-1 text-secondary"></i>
+                                    No income records found. Click "+ Add Income" to start tracking.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income by Source Breakdown -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm bg-white h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Income by Source</h6>
+                <span class="text-muted extra-small" style="font-size: 0.8rem;">Month: {{ selected_month }}</span>
+            </div>
+            <div class="card-body">
+                {% if sources %}
+                    {% for src in sources %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">{{ src.source }}</span>
+                            <span class="text-muted">{{ src.amount | currency }} ({{ src.percentage }}%)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ src.percentage }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4 text-muted small">
+                        No income registered for this month to compute source breakdown.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Income Modal -->
+<div class="modal fade" id="addIncomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-plus-circle me-1"></i> Add Income</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('income.add') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Amount ({{ user_currency_symbol }})</label>
+                        <input type="number" step="0.01" class="form-control" name="amount" required placeholder="0.00" autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Source</label>
+                        <select class="form-select" name="source" required>
+                            {% for src in income_sources %}
+                                <option value="{{ src }}">{{ src }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Date</label>
+                        <input type="date" class="form-control" name="date" required id="incomeModalDate">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Description</label>
+                        <input type="text" class="form-control" name="description" placeholder="e.g. Monthly salary, consulting payout">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm px-3">Save Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('incomeModalDate').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

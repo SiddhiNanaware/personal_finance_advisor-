@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}AI Personal Finance Advisor - FinBot{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pb-3 mb-3 border-bottom gap-2">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="bi bi-stars text-primary me-2"></i>AI Personal Finance Advisor</h3>
+        <p class="text-muted small mb-0">Actionable advice, spending leak analysis, and conversational AI assistance</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <form action="{{ url_for('advisor.clear_chat') }}" method="POST" onsubmit="return confirm('Clear chat history with FinBot?');">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-eraser me-1"></i> Clear Chat
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Left Column: Health Score & Actionable Recommendations -->
+    <div class="col-lg-6">
+        <!-- Health Score Summary Card -->
+        <div class="card border-0 shadow-sm bg-white mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Financial Health Score</span>
+                        <h2 class="fw-bold mb-0 text-dark">{{ health.score }} <span class="fs-6 text-muted">/ 100</span></h2>
+                        <span class="badge bg-{{ health.badge_class }} mt-1">{{ health.rating }}</span>
+                    </div>
+                    <div class="health-score-badge bg-{{ health.badge_class }}-subtle text-{{ health.badge_class }}">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </div>
+                </div>
+
+                <div class="list-group list-group-flush border-top pt-2">
+                    {% for item in health.feedback %}
+                    <div class="list-group-item px-0 py-1 border-0 small text-muted d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>{{ item }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Overspending Alerts & Actionable Cards -->
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Personalized Recommendations</h6>
+        <div class="d-flex flex-column gap-3 mb-4">
+            {% for rec in recommendations %}
+            <div class="card rec-card border-{{ rec.type }} shadow-sm bg-white p-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="stat-icon-box bg-{{ rec.type }}-subtle text-{{ rec.type }} flex-shrink-0">
+                        <i class="bi {{ rec.icon }}"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-{{ rec.type }} mb-1">{{ rec.title }}</h6>
+                        <p class="small text-muted mb-0">{{ rec.message }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- AI Deep Critique Card -->
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold">
+                <i class="bi bi-robot fs-5"></i>
+                <span>FinBot Monthly Strategic Overview</span>
+            </div>
+            <div class="p-3 bg-light rounded small border" style="line-height: 1.6;">
+                {{ ai_analysis | replace('\n', '<br>') | safe }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive FinBot Chat Interface -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm bg-white h-100 d-flex flex-column">
+            <div class="card-header bg-dark text-white pt-3 pb-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="d-inline-flex p-2 rounded-circle bg-primary text-white">
+                        <i class="bi bi-robot"></i>
+                    </span>
+                    <div>
+                        <h6 class="fw-bold mb-0">FinBot AI Financial Advisor</h6>
+                        <small class="text-success extra-small"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Active &bull; Real-time contextual memory</small>
+                    </div>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border">AI Assistant</span>
+            </div>
+
+            <!-- Chat Messages Display Area -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Welcome Initial Message -->
+                    <div class="chat-bubble chat-bubble-assistant">
+                        Hello <strong>{{ current_user.full_name }}</strong>! I am <strong>FinBot</strong>, your personal financial advisor. 
+                        I have analyzed your income, expense categories, and budget limits. 
+                        Ask me anything about how to optimize your spending, save for your goal <em>"{{ current_user.financial_goal }}"</em>, or curb overspending!
+                    </div>
+
+                    <!-- Existing Chat History -->
+                    {% for msg in chat_history %}
+                    <div class="chat-bubble {% if msg.role == 'user' %}chat-bubble-user{% else %}chat-bubble-assistant{% endif %}">
+                        {{ msg.content | replace('\n', '<br>') | safe }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick Prompt Chips -->
+                <div class="p-2 border-top bg-light d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-prompt-btn" data-prompt="How can I improve my savings rate this month?">
+                        💡 How to save more?
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-prompt-btn" data-prompt="Which categories am I overspending on?">
+                        ⚠️ Overspending check
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-prompt-btn" data-prompt="Suggest a realistic budget allocation using 50/30/20 rule.">
+                        📊 50/30/20 rule advice
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm quick-prompt-btn" data-prompt="How on track am I towards my financial goal?">
+                        🎯 Goal check
+                    </button>
+                </div>
+
+                <!-- Chat Input Form -->
+                <div class="p-3 border-top bg-white">
+                    <form id="chatForm" class="d-flex gap-2">
+                        <input type="text" id="chatInput" class="form-control" placeholder="Type your financial question..." autocomplete="off" required>
+                        <button type="submit" id="sendChatBtn" class="btn btn-primary px-3">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </form>
+                    <div class="extra-small text-muted mt-1 text-center" style="font-size: 0.75rem;">
+                        FinBot synthesizes insights from your real transaction data &amp; current limits.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/advisor.js') }}"></script>
+{% endblock %}

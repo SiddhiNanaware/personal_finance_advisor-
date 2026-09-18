@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Financial Report - Personal Finance Advisor Bot{% endblock %}
+
+{% block content %}
+<!-- Print Header (Visible only when printed) -->
+<div class="d-none d-print-block mb-4 text-center border-bottom pb-3">
+    <h2>Personal Finance Statement &bull; {{ month_title }}</h2>
+    <p class="text-muted mb-0">Prepared for {{ current_user.full_name }} &bull; Generated via Personal Finance Advisor Bot</p>
+</div>
+
+<!-- Screen Top Control Bar -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pb-3 mb-3 border-bottom gap-2 no-print">
+    <div>
+        <h3 class="fw-bold mb-1">Monthly Financial Report</h3>
+        <p class="text-muted small mb-0">Audited cashflow statement and AI performance review for <strong>{{ month_title }}</strong></p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0">Month:</label>
+            <input type="month" name="month" class="form-control form-control-sm" value="{{ selected_month }}" onchange="this.form.submit()">
+        </form>
+
+        <button onclick="window.print()" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-printer"></i> Print / Export PDF
+        </button>
+    </div>
+</div>
+
+<!-- Report Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Inflow (Income)</span>
+            <h4 class="fw-bold text-success mt-1 mb-0">{{ summary.monthly_income | currency }}</h4>
+            <span class="text-muted small">Recorded earnings</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Total Outflow (Expense)</span>
+            <h4 class="fw-bold text-danger mt-1 mb-0">{{ summary.monthly_expense | currency }}</h4>
+            <span class="text-muted small">Expenditure across all channels</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Net Monthly Savings</span>
+            <h4 class="fw-bold {% if summary.monthly_savings >= 0 %}text-primary{% else %}text-danger{% endif %} mt-1 mb-0">
+                {{ summary.monthly_savings | currency }}
+            </h4>
+            <span class="badge bg-primary-subtle text-primary">{{ summary.savings_rate }}% Savings Rate</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm bg-white p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Financial Health Score</span>
+            <h4 class="fw-bold text-dark mt-1 mb-0">{{ health.score }}/100</h4>
+            <span class="badge bg-{{ health.badge_class }}">{{ health.rating }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- AI Executive Summary & Insights -->
+<div class="card border-0 shadow-sm bg-white mb-4">
+    <div class="card-header bg-white border-0 pt-3 pb-2 d-flex align-items-center gap-2">
+        <i class="bi bi-robot text-primary fs-5"></i>
+        <h6 class="fw-bold mb-0">AI Advisor Executive Assessment ({{ month_title }})</h6>
+    </div>
+    <div class="card-body pt-0">
+        <div class="p-3 bg-light rounded border">
+            <div class="small" style="line-height: 1.6;">
+                {{ ai_analysis | replace('\n', '<br>') | safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Breakdown Tables Row -->
+<div class="row g-4 mb-4">
+    <!-- Category Spending Breakdown -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm bg-white h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart text-danger me-2"></i>Expense Breakdown by Category</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th class="ps-3">Category</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end pe-3">% Share</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for cat in category_expenses %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ cat.category }}</td>
+                            <td class="text-end fw-bold text-danger">{{ cat.amount | currency }}</td>
+                            <td class="text-end pe-3">{{ cat.percentage }}%</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-3 text-muted">No expenses recorded for this month.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income Sources Breakdown -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm bg-white h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-wallet2 text-success me-2"></i>Income Sources Breakdown</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th class="ps-3">Source</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end pe-3">% Share</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        {% for src in income_sources %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ src.source }}</td>
+                            <td class="text-end fw-bold text-success">{{ src.amount | currency }}</td>
+                            <td class="text-end pe-3">{{ src.percentage }}%</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-3 text-muted">No income sources recorded for this month.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Utilization Performance Table -->
+<div class="card border-0 shadow-sm bg-white mb-4">
+    <div class="card-header bg-white border-0 pt-3 pb-2">
+        <h6 class="fw-bold mb-0"><i class="bi bi-check2-all text-primary me-2"></i>Budget Adherence &amp; Compliance Audit</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Category</th>
+                        <th>Allocated Budget</th>
+                        <th>Actual Spent</th>
+                        <th>Variance / Remaining</th>
+                        <th>% Used</th>
+                        <th class="pe-3">Compliance Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in utilization.category_budgets %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ item.category }}</td>
+                        <td>{{ item.amount_limit | currency }}</td>
+                        <td class="fw-bold {% if item.percentage > 100 %}text-danger{% endif %}">{{ item.spent | currency }}</td>
+                        <td class="{% if item.remaining < 0 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                            {{ item.remaining | currency }}
+                        </td>
+                        <td>{{ item.percentage }}%</td>
+                        <td class="pe-3">
+                            <span class="badge bg-{{ item.badge_class }}">{{ item.status }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-3 text-muted">No budgets configured for this month.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
